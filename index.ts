@@ -33,7 +33,7 @@ yarnWorkspaceRun
     const commandToRun = script !== 'run' ? script : await askForCustomCommandToRun();
 
     const finalCommand = `yarn workspace ${workspaceName} ${commandToRun}`;
-    console.log(chalk.green(`running: ${finalCommand}`));
+    console.log(chalk.green(`Running: ${finalCommand}`));
     execSync(finalCommand, {stdio: 'inherit'});
   });
 yarnWorkspaceRun.parse(process.argv);
