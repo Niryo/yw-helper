@@ -1,12 +1,13 @@
 {
   "name": "yw-helper",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "A tool for quickly run scripts on yarn workspaces",
   "bin": {
     "yw": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "generateVersion": "echo 'export const version = \"'$npm_package_version'\";' > version.ts",
+    "build": "yarn run generateVersion && tsc -p tsconfig.build.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
