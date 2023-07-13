@@ -27,7 +27,13 @@ yarnWorkspaceRun
           return acc;
         }, {});
     const allWorkspacesNames = Object.keys(allWorkspaces);
-    const workspaceName = await getWorkspaceName(workspaceNameInput, allWorkspacesNames);
+    let workspaceName: string;
+    if(allWorkspacesNames.length === 1) {
+      workspaceName = allWorkspacesNames[0];
+      console.log(chalk.green(`Found workspace: ${workspaceName}`));
+    } else {
+      workspaceName = await getWorkspaceName(workspaceNameInput, allWorkspacesNames);
+    }
     const script = commandInput ?? await askForScriptToRun(allWorkspaces[workspaceName]);
     const commandToRun = script !== 'run' ? script : await askForCustomCommandToRun();
 
