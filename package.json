@@ -1,0 +1,29 @@
+{
+  "name": "yw-helper",
+  "version": "1.0.0",
+  "description": "A tool for quickly run scripts on yarn workspaces",
+  "bin": {
+    "yw": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/inquirer-autocomplete-prompt": "^3.0.0",
+    "typescript": "^4.9.5"
+  },
+  "author": "Nir Yosef",
+  "license": "ISC",
+  "packageManager": "yarn@3.6.1",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "dependencies": {
+    "commander": "^11.0.0",
+    "fuse.js": "^6.6.2",
+    "inquirer": "^9.2.7",
+    "inquirer-autocomplete-prompt": "^3.0.0"
+  }
+}
