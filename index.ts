@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import {createCommand} from 'commander';
 import {execSync} from 'child_process';
 import Fuse from 'fuse.js';
