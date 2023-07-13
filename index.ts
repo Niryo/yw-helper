@@ -5,10 +5,14 @@ import Fuse from 'fuse.js';
 import inquirer from 'inquirer';
 import fs from 'fs';
 import inquirerPrompt from 'inquirer-autocomplete-prompt';
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const packageJson = require("./package.json");
 
 inquirer.registerPrompt('autocomplete', inquirerPrompt);
 
 const yarnWorkspaceRun = createCommand();
+yarnWorkspaceRun.version(packageJson.version, '-v, --version', 'output the current version');
 yarnWorkspaceRun
   .argument('[workspaceName]', 'The name of the workspace')
   .argument('[command]', 'The command to run')
