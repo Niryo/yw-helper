@@ -1,6 +1,6 @@
 {
   "name": "yw-helper",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A tool for quickly run scripts on yarn workspaces",
   "bin": {
     "yw": "dist/index.js"
@@ -21,6 +21,7 @@
   ],
   "type": "module",
   "dependencies": {
+    "chalk": "^5.3.0",
     "commander": "^11.0.0",
     "fuse.js": "^6.6.2",
     "inquirer": "^9.2.7",

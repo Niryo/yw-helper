@@ -5,7 +5,8 @@ import Fuse from 'fuse.js';
 import inquirer from 'inquirer';
 import fs from 'fs';
 import inquirerPrompt from 'inquirer-autocomplete-prompt';
-import { createRequire } from "module";
+import {createRequire} from "module";
+import chalk from 'chalk';
 const require = createRequire(import.meta.url);
 const packageJson = require("./package.json");
 
@@ -16,19 +17,40 @@ yarnWorkspaceRun.version(packageJson.version, '-v, --version', 'output the curre
 yarnWorkspaceRun
   .argument('[workspaceName]', 'The name of the workspace')
   .argument('[command]', 'The command to run')
-  .action(async (workspaceNameInput: string, commandInput: string) => {
+  .action(async (workspaceNameInput?: string, commandInput?: string) => {
 
-    const allWorkspaces = execSync('yarn workspaces list --json', {stdio: 'pipe'}).toString()
+    const allWorkspaces: Record<string, string> = execSync('yarn workspaces list --json', {stdio: 'pipe'}).toString()
       .split('\n')
       .filter(line => line !== '')
       .map((line) => JSON.parse(line))
       .reduce((acc, {location, name}) => {
         acc[name] = location;
         return acc;
-      }, {} as {location: string; name: string}[]);
-    const workspacesName = Object.keys(allWorkspaces);
-    const fuseWorkspaceNames = new Fuse(workspacesName, {ignoreLocation: true});
-    const workspaceName = workspaceNameInput ? fuseWorkspaceNames.search(workspaceNameInput)[0].item : (await inquirer
+      }, {});
+    const allWorkspacesNames = Object.keys(allWorkspaces);
+    const workspaceName = await getWorkspaceName(workspaceNameInput, allWorkspacesNames);
+    const script = commandInput ?? await askForScriptToRun(allWorkspaces[workspaceName]);
+    const commandToRun = script !== 'run' ? script : await askForCustomCommandToRun();
+
+    const finalCommand = `yarn workspace ${workspaceName} ${commandToRun}`;
+    console.log(chalk.green(`running: ${finalCommand}`));
+    execSync(finalCommand, {stdio: 'inherit'});
+  });
+yarnWorkspaceRun.parse(process.argv);
+
+
+async function getWorkspaceName(workspaceNameInput: string | undefined, workspacesNames: string[]) {
+  const fuseWorkspaceNames = new Fuse(workspacesNames, {ignoreLocation: true});
+  let foundName;
+  if (workspaceNameInput) {
+    foundName = fuseWorkspaceNames.search(workspaceNameInput)[0]?.item
+  }
+  if (foundName) {
+    console.log(chalk.green(`Found workspace: ${foundName}`));
+    return foundName;
+  } else {
+    console.log(chalk.red(`Could not find workspace with the name of ${workspaceNameInput}, please select workspace from the list below:`));
+    return (await inquirer
       .prompt([
         {
           type: 'autocomplete',
@@ -36,37 +58,40 @@ yarnWorkspaceRun
           message: 'Workspace',
           source: (_answersSoFar: any, input: string) => {
             if (!input) {
-              return workspacesName;
+              return workspacesNames;
             }
             return fuseWorkspaceNames.search(input).map(({item}) => item);
           },
         },
       ])).workspaceName;
+  }
 
-    const workspaceScripts = Object.keys(JSON.parse(fs.readFileSync(`${allWorkspaces[workspaceName]}/package.json`, 'utf-8')).scripts);
-    workspaceScripts.unshift('run');
-    const fuseWorkspaceScripts = new Fuse(workspaceScripts, {ignoreLocation: true});
+}
 
-    const command = commandInput ?? (await inquirer
-      .prompt([
-        {
-          type: 'autocomplete',
-          name: 'command',
-          message: 'Command',
-          source: (_answersSoFar: any, input: string) => {
-            if (!input) {
-              return workspaceScripts;
-            }
-            return fuseWorkspaceScripts.search(input).map(({item}) => item);
-          },
+async function askForScriptToRun(workspaceLocation: string) {
+  const workspaceScripts = Object.keys(JSON.parse(fs.readFileSync(`${workspaceLocation}/package.json`, 'utf-8')).scripts);
+  workspaceScripts.unshift('run');
+  const fuseWorkspaceScripts = new Fuse(workspaceScripts, {ignoreLocation: true});
+  return (await inquirer
+    .prompt([
+      {
+        type: 'autocomplete',
+        name: 'script',
+        message: 'Script',
+        source: (_answersSoFar: any, input: string) => {
+          if (!input) {
+            return workspaceScripts;
+          }
+          return fuseWorkspaceScripts.search(input).map(({item}) => item);
         },
-      ])).command;
-    const finalCommand = command !== 'run' ? command : (await inquirer.prompt({
-      message: 'Run:',
-      type: 'input',
-      name: 'commandToRun',
-    })).commandToRun;
+      },
+    ])).script;
+}
 
-    execSync(`yarn workspace ${workspaceName} ${finalCommand}`, {stdio: 'inherit'});
-  });
-yarnWorkspaceRun.parse(process.argv);
+async function askForCustomCommandToRun() {
+  return (await inquirer.prompt({
+    message: 'Run:',
+    type: 'input',
+    name: 'commandToRun',
+  })).commandToRun;
+}
