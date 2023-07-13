@@ -16,15 +16,16 @@ yarnWorkspaceRun
   .argument('[workspaceName]', 'The name of the workspace')
   .argument('[command]', 'The command to run')
   .action(async (workspaceNameInput?: string, commandInput?: string) => {
-
-    const allWorkspaces: Record<string, string> = execSync('yarn workspaces list --json', {stdio: 'pipe'}).toString()
-      .split('\n')
-      .filter(line => line !== '')
-      .map((line) => JSON.parse(line))
-      .reduce((acc, {location, name}) => {
-        acc[name] = location;
-        return acc;
-      }, {});
+    verifyYarn();
+    const allWorkspaces: Record<string, string> =
+      listWorkspaces()
+        .split('\n')
+        .filter(line => line !== '')
+        .map((line) => JSON.parse(line))
+        .reduce((acc, {location, name}) => {
+          acc[name] = location;
+          return acc;
+        }, {});
     const allWorkspacesNames = Object.keys(allWorkspaces);
     const workspaceName = await getWorkspaceName(workspaceNameInput, allWorkspacesNames);
     const script = commandInput ?? await askForScriptToRun(allWorkspaces[workspaceName]);
@@ -90,4 +91,22 @@ async function askForCustomCommandToRun() {
     type: 'input',
     name: 'commandToRun',
   })).commandToRun;
+}
+
+function verifyYarn() {
+  try {
+    execSync('yarn --version', {stdio: 'pipe'});
+  } catch (e) {
+    console.log(chalk.red('yarn is not installed, please install yarn before using this tool'));
+    process.exit(1);
+  }
+}
+
+function listWorkspaces() {
+  try {
+    return execSync('yarn workspaces list --json', {stdio: 'pipe'}).toString()
+  } catch (e) {
+    console.log(chalk.red('yarn workspaces list failed, please make sure you are running this command from the root of the monorepo'));
+    process.exit(1);
+  }
 }

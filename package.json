@@ -8,8 +8,7 @@
   "scripts": {
     "update": "npm version minor && npm run build && npm publish",
     "generateVersion": "echo 'export const version = \"'$npm_package_version'\";' > version.ts",
-    "build": "yarn run generateVersion && tsc -p tsconfig.build.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "yarn run generateVersion && tsc -p tsconfig.build.json"
   },
   "devDependencies": {
     "@types/inquirer-autocomplete-prompt": "^3.0.0",
