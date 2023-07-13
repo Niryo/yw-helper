@@ -1,8 +1,14 @@
 # yw-helper
 ## A tiny lib to make it easier to run commands on yarn workspaces
 
-## install
+## Install
 `npm install -g yw-helper`
+
+## Example
+
+https://github.com/Niryo/yw-helper/assets/8758348/0b29fae8-e2e1-4f76-b42c-a0a6178737a3
+
+
 
 ## usage
 Let's say you want to run the `test`` command inside a workspace named `my-cool-workspace`:
