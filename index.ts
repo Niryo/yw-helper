@@ -34,7 +34,12 @@ yarnWorkspaceRun
     } else {
       workspaceName = await getWorkspaceName(workspaceNameInput, allWorkspacesNames);
     }
-    const script = commandInput ?? await askForScriptToRun(allWorkspaces[workspaceName]);
+    let script: string;
+    if(allWorkspacesNames.length === 1 && workspaceNameInput !== undefined && commandInput === undefined) {
+      script = workspaceNameInput; //if there is only one workspace, we assume that the given command is actually the script and not the workspace name
+    } else {
+      script = await askForScriptToRun(allWorkspaces[workspaceName]);
+    }
     const commandToRun = script !== 'run' ? script : await askForCustomCommandToRun();
 
     const finalCommand = `yarn workspace ${workspaceName} ${commandToRun}`;
