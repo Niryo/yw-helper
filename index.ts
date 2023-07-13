@@ -41,31 +41,29 @@ yarnWorkspaceRun.parse(process.argv);
 
 async function getWorkspaceName(workspaceNameInput: string | undefined, workspacesNames: string[]) {
   const fuseWorkspaceNames = new Fuse(workspacesNames, {ignoreLocation: true});
-  let foundName;
   if (workspaceNameInput) {
-    foundName = fuseWorkspaceNames.search(workspaceNameInput)[0]?.item
+    const foundName = fuseWorkspaceNames.search(workspaceNameInput)[0]?.item
+    if (foundName) {
+      console.log(chalk.green(`Found workspace: ${foundName}`));
+      return foundName;
+    } else {
+      console.log(chalk.red(`Could not find workspace with the name of ${workspaceNameInput}, please select workspace from the list below:`));
+    }
   }
-  if (foundName) {
-    console.log(chalk.green(`Found workspace: ${foundName}`));
-    return foundName;
-  } else {
-    console.log(chalk.red(`Could not find workspace with the name of ${workspaceNameInput}, please select workspace from the list below:`));
-    return (await inquirer
-      .prompt([
-        {
-          type: 'autocomplete',
-          name: 'workspaceName',
-          message: 'Workspace',
-          source: (_answersSoFar: any, input: string) => {
-            if (!input) {
-              return workspacesNames;
-            }
-            return fuseWorkspaceNames.search(input).map(({item}) => item);
-          },
+  return (await inquirer
+    .prompt([
+      {
+        type: 'autocomplete',
+        name: 'workspaceName',
+        message: 'Workspace',
+        source: (_answersSoFar: any, input: string) => {
+          if (!input) {
+            return workspacesNames;
+          }
+          return fuseWorkspaceNames.search(input).map(({item}) => item);
         },
-      ])).workspaceName;
-  }
-
+      },
+    ])).workspaceName;
 }
 
 async function askForScriptToRun(workspaceLocation: string) {
