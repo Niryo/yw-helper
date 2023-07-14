@@ -79,7 +79,7 @@ async function getWorkspaceName(workspaceNameInput: string | undefined, workspac
 }
 
 async function askForScriptToRun(workspaceLocation: string) {
-  const workspaceScripts = Object.keys(JSON.parse(fs.readFileSync(`${workspaceLocation}/package.json`, 'utf-8')).scripts);
+  const workspaceScripts = Object.keys(JSON.parse(fs.readFileSync(`${workspaceLocation}/package.json`, 'utf-8')).scripts || {});
   workspaceScripts.unshift('run');
   const fuseWorkspaceScripts = new Fuse(workspaceScripts, {ignoreLocation: true});
   return (await inquirer
