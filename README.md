@@ -20,4 +20,5 @@ You can also run `yw` and press enter to get a list of all your workspaces. Then
 
 #### Example
 
-https://github.com/Niryo/yw-helper/assets/8758348/0b29fae8-e2e1-4f76-b42c-a0a6178737a3
+https://github.com/Niryo/yw-helper/assets/8758348/dc597570-dc1e-4e88-b91e-495e02f624eb
+
