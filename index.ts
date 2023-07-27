@@ -7,7 +7,10 @@ import fs from 'fs';
 import inquirerPrompt from 'inquirer-autocomplete-prompt';
 import chalk from 'chalk';
 import {version} from './version.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 inquirer.registerPrompt('autocomplete', inquirerPrompt);
 
 const yarnWorkspaceRun = createCommand();
@@ -15,7 +18,14 @@ yarnWorkspaceRun.version(version, '-v, --version', 'output the current version')
 yarnWorkspaceRun
   .argument('[workspaceName]', 'The name of the workspace')
   .argument('[command...]', 'The command to run')
+  .option('-l, --last-command', 'Run the last command that was run with this tool')
   .action(async (workspaceNameInputOrCommand: string, commandInput: string[]) => {
+    if(yarnWorkspaceRun.opts().lastCommand) {
+      const lastCommand = fs.readFileSync(`${__dirname}/lastCommand.txt`, 'utf-8').trim();
+      console.log(chalk.green(`Running last command: ${lastCommand}`));
+      execSync(lastCommand, {stdio: 'inherit'});
+      return;
+    }
     verifyYarn();
     const allWorkspaces: Record<string, string> =
       listWorkspaces()
@@ -46,6 +56,7 @@ yarnWorkspaceRun
 
     const finalCommand = `yarn workspace ${workspaceName} ${commandToRun}`;
     console.log(chalk.green(`Running: ${finalCommand}`));
+    fs.writeFileSync(`${__dirname}/lastCommand.txt`, finalCommand, 'utf-8');
     execSync(finalCommand, {stdio: 'inherit'});
   });
 yarnWorkspaceRun.parse(process.argv);
