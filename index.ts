@@ -14,8 +14,8 @@ const yarnWorkspaceRun = createCommand();
 yarnWorkspaceRun.version(version, '-v, --version', 'output the current version');
 yarnWorkspaceRun
   .argument('[workspaceName]', 'The name of the workspace')
-  .argument('[command]', 'The command to run')
-  .action(async (workspaceNameInput?: string, commandInput?: string) => {
+  .argument('[command...]', 'The command to run')
+  .action(async (workspaceNameInputOrCommand: string, commandInput: string[]) => {
     verifyYarn();
     const allWorkspaces: Record<string, string> =
       listWorkspaces()
@@ -32,13 +32,13 @@ yarnWorkspaceRun
       workspaceName = allWorkspacesNames[0];
       console.log(chalk.green(`Found workspace: ${workspaceName}`));
     } else {
-      workspaceName = await getWorkspaceName(workspaceNameInput, allWorkspacesNames);
+      workspaceName = await getWorkspaceName(workspaceNameInputOrCommand, allWorkspacesNames);
     }
     let script: string;
-    if(commandInput) {
-      script = commandInput;
-    } else if(allWorkspacesNames.length === 1 && workspaceNameInput) {
-      script = workspaceNameInput; //if there is only one workspace, we assume that the given command is actually the script and not the workspace name
+    if(commandInput.length > 0) {
+      script = commandInput.join(' ');
+    } else if(allWorkspacesNames.length === 1 && workspaceNameInputOrCommand) {
+      script = workspaceNameInputOrCommand; //if there is only one workspace, we assume that the given command is actually the script and not the workspace name
     }  else {
       script = await askForScriptToRun(allWorkspaces[workspaceName]);
     }
