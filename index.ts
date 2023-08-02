@@ -52,6 +52,7 @@ yarnWorkspaceRun
     const lastWorkspacePath = `${__dirname}/lastWorkspace.txt`;
     if (yarnWorkspaceRun.opts().reuseWorkspace && fs.existsSync(lastWorkspacePath)) {
         workspaceName = fs.readFileSync(lastWorkspacePath, 'utf-8').trim();
+        workspaceNameInputOrCommand && commandInput.unshift(workspaceNameInputOrCommand);
         console.log(chalk.green(`Using last workspace: ${workspaceName}`));
     } else if (isSingleWorkspace) {
       workspaceName = allWorkspacesNames[0];
