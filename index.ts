@@ -16,6 +16,7 @@ inquirer.registerPrompt('autocomplete', inquirerPrompt);
 const yarnWorkspaceRun = createCommand();
 yarnWorkspaceRun.version(version, '-v, --version', 'output the current version');
 yarnWorkspaceRun
+  .allowUnknownOption(true)
   .argument('[workspaceName]', 'The name of the workspace')
   .argument('[command...]', 'The command to run')
   .option('-l, --last-command', 'Run the last command that was run with this tool')
@@ -37,18 +38,22 @@ yarnWorkspaceRun
           return acc;
         }, {});
     const allWorkspacesNames = Object.keys(allWorkspaces);
+    const isSingleWorkspace = allWorkspacesNames.length === 1;
     let workspaceName: string;
-    if(allWorkspacesNames.length === 1) {
+    if(isSingleWorkspace) {
       workspaceName = allWorkspacesNames[0];
+      // if there is only one workspace, we assume workspaceNameInputOrCommand is actually a command so we add it to the commandInput array
+      workspaceNameInputOrCommand && commandInput.unshift(workspaceNameInputOrCommand);
       console.log(chalk.green(`Found workspace: ${workspaceName}`));
     } else {
-      workspaceName = await getWorkspaceName(workspaceNameInputOrCommand, allWorkspacesNames);
+      const workspaceNameInput = workspaceNameInputOrCommand;
+      workspaceName = await getWorkspaceName(workspaceNameInput, allWorkspacesNames);
     }
     let script: string;
     if(commandInput.length > 0) {
       script = commandInput.join(' ');
     } else if(allWorkspacesNames.length === 1 && workspaceNameInputOrCommand) {
-      script = workspaceNameInputOrCommand; //if there is only one workspace, we assume that the given command is actually the script and not the workspace name
+      script = workspaceNameInputOrCommand.concat(...commandInput); //if there is only one workspace, we assume workspaceNameInputOrCommand is actually a command
     }  else {
       script = await askForScriptToRun(allWorkspaces[workspaceName]);
     }
