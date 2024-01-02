@@ -4,13 +4,13 @@ import {execSync} from 'child_process';
 import Fuse from 'fuse.js';
 import inquirer from 'inquirer';
 import fs from 'fs';
+import path from 'path';
 import inquirerPrompt from 'inquirer-autocomplete-prompt';
 import chalk from 'chalk';
 import {version} from './version.js';
-import path from 'path';
-import {fileURLToPath} from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const COMMAND_HISTORY_FILE = fs.existsSync('.vscode')? `${process.cwd()}/.vscode/yw_helper_history.txt` : `${process.cwd()}/.idea/yw_helper_history.txt`;
 inquirer.registerPrompt('autocomplete', inquirerPrompt);
 
 const yarnWorkspaceRun = createCommand();
@@ -20,14 +20,32 @@ yarnWorkspaceRun
   .argument('[workspaceName]', 'The name of the workspace')
   .argument('[command...]', 'The command to run')
   .option('-r, --re-run', 'Run again the last command')
+  .option('-c, --command-history', 'Show command history')
   .option('-w, --reuse-workspace', 'Use the same workspace as last time')
   .action(async (workspaceNameInputOrCommand: string, commandInput: string[]) => {
     verifyYarn();
 
+    if(yarnWorkspaceRun.opts().commandHistory) {
+      const commandHistory = getCommandHistory();
+      const setOfLastCommands = Array.from(new Set(commandHistory.reverse()));
+      const { selectedCommand } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'selectedCommand',
+          message: 'Select a command to run:',
+          choices: setOfLastCommands,
+        },
+      ]);
+
+      console.log(chalk.green(`Running selected command: ${selectedCommand}`));
+      appendToCommandHistory(selectedCommand);
+      execSync(selectedCommand, { stdio: 'inherit' });
+      return;
+    }
+
     if (yarnWorkspaceRun.opts().reRun) {
-      const lastCommandPath = `${__dirname}/lastWorkspace.txt`;
-      if (fs.existsSync(lastCommandPath)) {
-        const lastCommand = fs.readFileSync(lastCommandPath, 'utf-8').trim();
+      const lastCommand = getCommandHistory().pop();
+      if (lastCommand) {
         console.log(chalk.green(`Running last command: ${lastCommand}`));
         execSync(lastCommand, {stdio: 'inherit'});
         return;
@@ -41,19 +59,25 @@ yarnWorkspaceRun
         .split('\n')
         .filter(line => line !== '')
         .map((line) => JSON.parse(line))
+        .filter(({location}) => location !== '.')
         .reduce((acc, {location, name}) => {
           acc[name] = location;
           return acc;
-        }, {});
+        }, {})
     const allWorkspacesNames = Object.keys(allWorkspaces);
     const isSingleWorkspace = allWorkspacesNames.length === 1;
 
     let workspaceName: string;
-    const lastWorkspacePath = `${__dirname}/lastWorkspace.txt`;
-    if (yarnWorkspaceRun.opts().reuseWorkspace && fs.existsSync(lastWorkspacePath)) {
-        workspaceName = fs.readFileSync(lastWorkspacePath, 'utf-8').trim();
-        workspaceNameInputOrCommand && commandInput.unshift(workspaceNameInputOrCommand);
-        console.log(chalk.green(`Using last workspace: ${workspaceName}`));
+    const lastCommand = getCommandHistory().pop();
+    if (yarnWorkspaceRun.opts().reuseWorkspace && lastCommand) {
+      const lastWorkspace = lastCommand.split(' ')[2];
+      if (lastWorkspace === undefined) {
+        console.log(chalk.red('Could not find last workspace'));
+        process.exit(1);
+      }
+      workspaceName = lastWorkspace;
+      workspaceNameInputOrCommand && commandInput.unshift(workspaceNameInputOrCommand);
+      console.log(chalk.green(`Using last workspace: ${workspaceName}`));
     } else if (isSingleWorkspace) {
       workspaceName = allWorkspacesNames[0];
       // if there is only one workspace, we assume workspaceNameInputOrCommand is actually a command so we add it to the commandInput array
@@ -75,12 +99,16 @@ yarnWorkspaceRun
 
     const finalCommand = `yarn workspace ${workspaceName} ${commandToRun}`;
     console.log(chalk.green(`Running: ${finalCommand}`));
-    fs.writeFileSync(`${__dirname}/lastCommand.txt`, finalCommand, 'utf-8');
-    fs.writeFileSync(`${__dirname}/lastWorkspace.txt`, workspaceName, 'utf-8');
+    appendToCommandHistory(finalCommand);
+    // execSync(`echo '${finalCommand}' | tee -a ~/.bash_history ~/.zsh_history >/dev/null &&  history -r ~/.bash_history 2> /dev/null || fc -R`)
     execSync(finalCommand, {stdio: 'inherit'});
   });
 yarnWorkspaceRun.parse(process.argv);
 
+function appendToCommandHistory(command: string){
+  execSync(`mkdir -p ${path.dirname(COMMAND_HISTORY_FILE)} && touch ${COMMAND_HISTORY_FILE}`);
+  fs.appendFileSync(COMMAND_HISTORY_FILE, command + '\n');
+}
 
 async function getWorkspaceName(workspaceNameInput: string | undefined, workspacesNames: string[]) {
   const fuseWorkspaceNames = new Fuse(workspacesNames, {ignoreLocation: true});
@@ -146,9 +174,17 @@ function verifyYarn() {
   }
 }
 
+function getCommandHistory() {
+  if (fs.existsSync(COMMAND_HISTORY_FILE)) {
+    return fs.readFileSync(COMMAND_HISTORY_FILE, 'utf-8').trim().split('\n');
+  }
+  return [];
+}
+
 function listWorkspaces() {
   try {
-    return execSync('yarn workspaces list --json', {stdio: 'pipe'}).toString()
+    return execSync('yarn workspaces list --json', {stdio: 'pipe'})
+    .toString()
   } catch (e) {
     console.log(chalk.red('yarn workspaces list failed, please make sure you are running this command from the root of the monorepo'));
     process.exit(1);
